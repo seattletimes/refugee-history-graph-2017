@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <%= t.include("partials/_head.html") %>
+    <link rel="stylesheet" type="text/css" href="style.css">
+  </head>
+  <body>
+
+    <responsive-child>
+      <main class="interactive">
+        <section class="chatter">
+          <h1>Refugees in Washington State</h1>
+          <p>
+            Over the past 40 years, refugees to Washington state have arrived from countries around the world experiencing conflict. During the post-Vietnam War years through the 1980s, most refugees came from Southeast Asia. The collapse of the Soviet Union led to a mass exodus of refugees throughout the 1990s and early 2000s. In recent years, more are seeking refuge from violence in Iraq, Afghanistan and Somalia.
+          <p>
+            Select a bar to see specific data for each year, including how many refugees arrived and their country of origin.
+        </section>
+        <button class="switch">
+          <span class="icon">&boxbox;</span>
+          <label>Switch view</label>
+        </button>
+        <h2 class="title" data-mode="absolute">
+          <span class="absolute">Number of refugees by country</span>
+          <span class="relative">Share of refugees by country</span>
+        </h2>
+        <section class="plot">
+          <aside class="y-max"></aside>
+          <main class="plot-area"></main>
+          <aside class="x-axis"></aside>
+        </section>
+        <ul class="legend"></ul>
+        <section class="details">
+          <h1 class="tease">Choose a column for details</h1>
+        </section>
+        <section class="source">
+          Source: U.S. Citizenship and Immigration Services
+        </section>
+        <section class="credit">
+          Thomas Wilburn / The Seattle Times
+        </section>
+      </main>
+    </responsive-child>
+
+    <script>
+window.refugeeCounts = <%= JSON.stringify(csv.updated) %>;
+    </script>
+    <script src="app.js" async></script>
+    <% if (json.project.production) { %>
+    <%= !json.project.embedded ? t.include("partials/_foot.html") : "" %>
+    <%= t.include("partials/_workHere.html") %>
+    <% } %>
+  </body>
+</html>

@@ -1,0 +1,141 @@
+@import "seattletimes";
+
+main.interactive {
+  max-width: 960px;
+}
+
+.switch {
+  float: right;
+  background: @df-blue;
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.title span { display: none }
+.title[data-mode="absolute"] .absolute { display: block }
+.title[data-mode="relative"] .relative { display: block }
+
+.plot {
+  @axis-width: 50px;
+  position: relative;
+  clear: both;
+
+  .plot-area {
+    width: 100%;
+    height: 300px;
+    float: left;
+
+    @media @mobile {
+      float: none;
+      width: 100%;
+    }
+  }
+
+  .y-max {
+    text-align: left;
+    padding-left: 20px;
+    font-size: 12px;
+  }
+
+  .x-axis {
+    height: 40px;
+    position: relative;
+    clear: both;
+    font-size: 12px;
+
+    @media @mobile {
+      display: none;
+    }
+
+    .year {
+      display: block;
+      position: absolute;
+      top: 0;
+      -webkit-transform-origin: bottom right;
+      transform-origin: bottom right;
+      -webkit-transform: rotate(-30deg);
+      transform: rotate(-30deg);
+      text-align: right;
+
+      // &:nth-child(n + 2) {
+        padding-left: 8px;
+      // }
+
+      @media @tablet {
+        display: none;
+
+        &.major {
+          display: block;
+        }
+      }
+    }
+  }
+}
+
+.plot-area {
+  position: relative;
+
+  .item {
+    height: 20px;
+    width: calc(100% / 37 ~" + 1px");
+    // min-width: 40px;
+    position: absolute;
+    opacity: 0.9;
+    background: @df-light-gray;
+    transition: all .2s ease-in-out;
+
+    &.selected {
+      opacity: 1;
+    }
+  }
+}
+
+.details {
+  padding-bottom: 20px;
+
+  h1 {
+    text-align: center;
+    margin: 0;
+    font-size: 17px;
+    color: @df-dark-gray;
+    padding: 0;
+  }
+
+  ul {
+    padding: 0;
+    margin: 0 auto;
+    list-style-type: none;
+    font-size: 15px;
+    // text-align: center;
+    .display-flex();
+    .flex-wrap(wrap);
+
+    @media @mobile {
+      display: block;
+    }
+  }
+
+  li {
+    .flex(0 0 25%);
+
+    @media @tablet {
+      .flex(0 0 33%);
+    }
+
+    .icon {
+      content: "";
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 100%;
+      background: gray;
+      vertical-align: middle;
+    }
+  }
+}
+
+.source, .credit {
+  font-size: 15px;
+}

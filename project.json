@@ -1,0 +1,19 @@
+{
+  "s3": {
+    "stage": {
+      "bucket": "projects-staging.seattletimes.com",
+      "path": "stylish-tyranny"
+    },
+    "live": {
+      "bucket": "projects.seattletimes.com",
+      "path": "2017/politics/refugee-graph"
+    }
+  },
+  "title": "",
+  "description": "",
+  "url": "",
+  "image": "assets/social.jpg",
+  "sheets": [],
+  "production": true,
+  "embedded": true
+}

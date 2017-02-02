@@ -1,0 +1,309 @@
+// require("./lib/social");
+// require("./lib/ads");
+// var track = require("./lib/tracking");
+
+require("component-responsive-frame/child");
+
+var $ = require("./lib/qsa");
+
+var syncLayout = function(stages) {
+  var reads = [];
+  stages.forEach(function(stage, i) {
+    var tag = "stage " + i;
+    // console.time(tag);
+    if (typeof stage == "function") {
+      stage();
+    } else {
+      for (var i = 0; i < stage.length; i++) {
+        stage[i]();
+      }
+    }
+    reads.push(document.body.offsetTop);
+    // console.timeEnd(tag);
+  });
+};
+
+var plot = document.querySelector(".plot-area");
+var title = document.querySelector(".title");
+var yMax = document.querySelector(".y-max");
+var xAxis = document.querySelector(".x-axis");
+var details = document.querySelector(".details");
+
+var mode = "absolute";
+
+var refugeeData = window.refugeeCounts;
+
+var yearly = {};
+var totals = {};
+var byCountry = {
+  Other: {
+    total: 0,
+    years: {},
+    elements: {}
+  }
+};
+
+var top =  ["Former Soviet Union", "Vietnam", "Somalia", "Iraq", "Burma", "Bhutan", "Ethiopia", "Iran", "Afghanistan", "Ukraine"];
+var all = top.concat(["Other"]);
+var palette = {};
+top.forEach((k, i) => palette[k] = `hsl(${(i * 137 + 20) % 360}, ${i % 2 ? 30 : 60}%, ${i % 2 ? 30 : 60}%)`);
+// top = top.slice(0, 5);
+var yearCount = 37;
+
+for (var i = 0; i < yearCount; i++) {
+  var year = document.createElement("div");
+  year.className = "year";
+  year.innerHTML = "'" + (i + 1979).toString().slice(2);
+  year.style.left = `${i * (100 / yearCount)}%`;
+  xAxis.appendChild(year);
+}
+
+refugeeData.sort((a, b) => a.year - b.year).forEach(function(row) {
+  if (!yearly[row.year]) yearly[row.year] = {};
+  yearly[row.year][row.country] = row.count;
+
+  if (!totals[row.year]) totals[row.year] = 0;
+  totals[row.year] += row.count;
+
+  var country = top.indexOf(row.country) > -1 ? row.country : "Other";
+
+  if (!byCountry[country]) byCountry[country] = {
+    total: 0,
+    years: {},
+    elements: {}
+  };
+  var c = byCountry[country];
+  c.total += row.count;
+  if (!c.years[row.year]) c.years[row.year] = 0;
+  c.years[row.year] += row.count;
+
+  if (c.elements[row.year]) return;
+  var element = c.elements[row.year] = document.createElement("div");
+  element.className = "item";
+  element.setAttribute("data-country", country);
+  element.setAttribute("data-year", row.year);
+  element.setAttribute("title", country);
+  var index = row.year - 2015 + yearCount - 1;
+  element.style.left = `${index * (100 / yearCount)}%`;
+  element.style.transitionProperty = `all, opacity`
+  element.style.transitionDelay = `${index / yearCount * .5}s, 0s`;
+  element.style.background = palette[country];
+  plot.appendChild(element);
+
+});
+
+var maxAbsolute = Math.max.apply(null, Object.keys(totals).map(y => totals[y]));
+
+var render = function() {
+
+  var stack = [];
+  for (var i = 0; i < yearCount; i++) stack[i] = 0;
+
+  var boundsLookup = {};
+
+  Object.keys(byCountry).forEach(function(c) {
+    var country = byCountry[c];
+    Object.keys(country.years).sort().forEach(function(y) {
+      var count = country.years[y];
+      var i = y - 2015 + yearCount - 1;
+      var element = country.elements[y];
+
+      if (mode == "absolute") {
+        var h = (count / maxAbsolute) * 100;
+        var top = 100 - stack[i] - h;
+      } else {
+        var h = count / totals[y] * 100;
+        var top = 100 - stack[i] - h;
+      }
+      stack[i] += h;
+      element.style.height = `${(h + .1).toFixed(4)}%`;
+      element.style.top = `${top.toFixed(4)}%`;
+
+    });
+  })
+};
+
+render();
+
+document.querySelector(".switch").addEventListener("click", function() {
+  mode = mode == "absolute" ? "relative" : "absolute";
+  title.setAttribute("data-mode", mode);
+  render();
+});
+
+plot.addEventListener("click", function(e) {
+  if (e.target.hasAttribute("data-year")) {
+    var year = e.target.getAttribute("data-year");
+    var data = all
+      .map(country => ({ country, count: byCountry[country].years[year] }))
+      .filter(d => d.count)
+      // .sort((a, b) => b.count - a.count);
+    var commafy = s => s.toLocaleString().replace(/\.0+/, "");
+    var list = data.map(d => `
+      <li>
+        <i class="icon" style="background: ${palette[d.country]}"></i>
+        ${d.country}: ${commafy(d.count)}
+      `).join("")
+
+    details.innerHTML = `
+    <h1>${year}</h1>
+    <ul>
+      ${list}
+    </ul>
+    `
+
+  }
+})
+
+
+/*
+app.render = function() {
+  if (app.animating) return;
+  app.animating = true;
+  var isAbsolute = app.mode == "absolute";
+
+  var stack = [];
+  for (var i = 0; i < app.applications[0].data.length; i++) { stack[i] = 0 }; //zero the baseline
+  var plotBounds = plot.getBoundingClientRect();
+
+  yMax.innerHTML = isAbsolute ? app.max.toLocaleString().replace(/\.0+$/, "") : "100%";
+
+  //layout stages
+  var freeze = [];
+  var addClass = function() { plot.className += " animate" };
+  var animate = [];
+  var finish = [];
+
+  app.applications.forEach(function(row) {
+    row.data.forEach(function(item, i) {
+      var element = item.element;
+      var height = isAbsolute ? item.absolute / app.max * 100 : item.relative;
+      var base = stack[i];
+      stack[i] += height;
+      var bounds = element.getBoundingClientRect();
+
+      var pxHeight = height / 100 * plotBounds.height;
+      var pxBase = base / 100 * plotBounds.height;
+      var bottom = plotBounds.height - pxBase;
+      var duration = (row.data.length - i) * (animationLength / row.data.length) / 1000;
+
+      freeze.push(function() {
+        util.freeze(bounds, plotBounds, element);
+      });
+
+      animate.push(function() {
+        util.transform(element, bottom, pxHeight);
+        util.transitionDuration(element, duration);
+      });
+
+      finish.push(function() {
+        plot.className = plot.className.replace(/\banimate\b/g, "");
+        util.removeTransform(element);
+        util.transitionDuration(element, 0);
+        element.style.height = height + .1 + "%";
+        element.style.bottom = base + "%";
+      });
+
+    });
+  });
+
+  if (app.animate) {
+    util.syncLayout([freeze, addClass, animate]);
+    setTimeout(function() {
+      util.syncLayout([finish]);
+      app.animating = false;
+    }, animationLength);
+  } else {
+    util.syncLayout([finish]);
+    app.animating = false;
+  }
+}
+
+app.switch = function() {
+  if (app.animating) return;
+  plot.className = plot.className.replace(/\bselecting\b/g, "");
+  app.mode = app.mode == "absolute" ? "relative" : "absolute";
+  title.setAttribute("data-mode", app.mode);
+  app.render();
+};
+
+app.setup = function() {
+  var len = app.applications[0].data.length;
+  var xAxis = document.querySelector(".plot .x-axis");
+
+  for (var i = 0; i < len; i++) {
+    //create a label for the year
+    var label = document.createElement("label");
+    var year = i + 1992;
+    label.className = "year";
+    label.innerHTML = i + 1992;
+    if (year % 2 == 0) {
+      label.className += " major";
+    }
+    label.style.left = i * (100 / len) + "%";
+    xAxis.appendChild(label);
+  }
+
+  app.applications.forEach(function(row, i, apps) {
+    var country = row.country;
+    row.color = "hsl(" + (i * 48 + 180) + ", 30%, " + (i > (len / 2) ? "30%" : "50%") + ")";
+
+    //add graph elements
+    row.data.forEach(function(item, i, arr) {
+      var el = document.createElement("div");
+      el.className = "item " + country.replace(/\s/g, "");
+      el.setAttribute("connect", country + "-" + i);
+      el.setAttribute("data-index", i);
+      // el.style.width = 100 / arr.length + "%";
+      el.style.left = i * (100 / arr.length) + "%";
+      // el.style.backgroundColor = row.color;
+      el.title = country;
+
+      item.element = el;
+      plot.appendChild(el);
+    });
+  });
+
+};
+
+app.setup();
+app.render();
+app.animate = true;
+
+var switchButton = document.querySelector(".switch");
+switchButton.addEventListener("click", app.switch);
+
+var detailSection = document.querySelector(".details");
+
+//on touch of a column
+// plot.addEventListener("click", function(e) {
+//   var bounds = plot.getBoundingClientRect();
+//   var x = e.clientX - bounds.left;
+//   var index = Math.floor(x / (bounds.width / yearly.length));
+
+//   var sorted = {};
+//   var countries = Object.keys(yearly[index]).filter(function(c) { return c !== "Other" });
+//   countries.sort(function(a, b) {
+//     return yearly[index][b].absolute - yearly[index][a].absolute;
+//   }).forEach(function(c) {
+//     sorted[c] = yearly[index][c];
+//   });
+//   sorted.Other = yearly[index].Other;
+
+//   detailSection.innerHTML = details({
+//     year: index + 1992,
+//     countries: sorted
+//   });
+
+//   util.qsa(".item.active").forEach(function(el) {
+//     el.className = el.className.replace(/\bactive\b/g, "");
+//   });
+
+//   util.qsa("[data-index='" + index + "']").forEach(function(el) {
+//     el.className += " active";
+//   });
+
+//   plot.className += " selecting ";
+
+// });
+*/
